@@ -379,7 +379,7 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
         return self.theta
     
     
-    def load_weights(self, file_path='./agents/linux-legends/weights.json'):
+    def load_weights(self, file_path='./agents/Linux-Legends/weights.json'):
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 weights_str = file.read()
@@ -389,7 +389,7 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
             print("No weight file found. Initializing weights to zeros.")
             self.theta = util.Counter()
     
-    def save_weights(self, file_path='./agents/linux-legends/weights.json'):
+    def save_weights(self, file_path='./agents/Linux-Legends/weights.json'):
         with open(file_path, 'w') as f:
             f.write(str(dict(self.theta)))
 
