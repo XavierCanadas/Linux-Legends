@@ -448,10 +448,9 @@ class AStarAgent(CaptureAgent):
     def choose_action(self, game_state):
         # Get the food you are defending and the capsules you are defending in this state
         current_food = self.get_food_you_are_defending(game_state).as_list()
-        current_capsules = self.get_capsules_you_are_defending(game_state)
 
-        # Check if the food or capsules have changed
-        if current_food != self.previous_food or current_capsules != self.previous_capsules:
+        # Check if the food have changed
+        if current_food != self.previous_food:
             # get the food position that have been eaten
             eaten_food = [food for food in self.previous_food if food not in current_food]
 
@@ -565,3 +564,4 @@ class AStarAgent(CaptureAgent):
         elif direction == Directions.WEST:
             return (x - 1, y)
         return position
+
