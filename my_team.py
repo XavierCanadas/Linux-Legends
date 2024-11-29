@@ -36,7 +36,7 @@ from util import nearest_point
 #################
 
 def create_team(first_index, second_index, is_red,
-                first='OffensiveReflexAgent', second='DefensiveReflexAgent', num_training=0):
+                first='OffensiveReflexAgent', second='AStarAgent', num_training=0):
     """
     This function should return a list of two agents that will form the
     team, initialized using firstIndex and secondIndex as their agent
@@ -435,7 +435,6 @@ class AStarAgent(CaptureAgent):
         super().__init__(index, time_for_computing)
         self.start = None
         self.previous_food = None
-        self.previous_capsules = None
         self.target_position = None
         self.current_position = None
         self.count_actions = 0
@@ -445,9 +444,6 @@ class AStarAgent(CaptureAgent):
         self.current_position = self.start
         CaptureAgent.register_initial_state(self, game_state)
         self.previous_food = self.get_food_you_are_defending(game_state).as_list()
-
-        #S'ha de pensar q fer amb les capsules
-        self.previous_capsules = self.get_capsules_you_are_defending(game_state)
 
     def choose_action(self, game_state):
         # Get the food you are defending and the capsules you are defending in this state
@@ -459,9 +455,6 @@ class AStarAgent(CaptureAgent):
             # get the food position that have been eaten
             eaten_food = [food for food in self.previous_food if food not in current_food]
 
-            # get the capsules that have been eaten
-            eaten_capsules = [capsule for capsule in self.previous_capsules if capsule not in current_capsules]
-
             # in each new state, the maximum food eaten by the enemies is two because there are two enemies
             # if the food has been eaten, update the target position to the nearest eaten food
             if eaten_food:
@@ -471,33 +464,41 @@ class AStarAgent(CaptureAgent):
         enemies = [game_state.get_agent_state(i) for i in self.get_opponents(game_state)]
         invaders = [a for a in enemies if a.is_pacman and a.get_position() is not None]
 
-
-
         # if there are invaders, update the target position towards the nearest invader
         if invaders:
             self.target_position = min([invader.get_position() for invader in invaders], key=lambda x: self.get_maze_distance(self.start, x))
 
-        # update the previous food and capsules
+        # Update the previous food
         self.previous_food = current_food
-        self.previous_capsules = current_capsules
 
         # if there is a target position, call a_star_search to get the path to the target position
-
         if self.target_position:
             target = self.target_position
         else:
+            # If not, go to the nearest food to the center
             center = (game_state.data.layout.width // 2, game_state.data.layout.height // 2)
             if current_food:
-                target = min(current_food, key=lambda x: self.get_maze_distance(center, x))
+                # try-catch to avoid errors in two specific boards
+                try:
+                    target = min(current_food, key=lambda x: self.get_maze_distance(center, x))
+                except:
+                    target = center
             else:
                 target = center
 
+        # update the current position
         current_position = game_state.get_agent_position(self.index)
-        path = self.a_star_search(game_state, current_position, target)
+
+        # try-catch to avoid errors in two specific boards
+        try:
+            # call a_star_search to get the path to the target position
+            path = self.a_star_search(game_state, current_position, target)
+        except:
+            path = []
 
         # reset the target position
         self.count_actions += 1
-        # guardar l'ultima posicio del fantasma vist o menjar menjat durant 10 posicions pq vagi cap allà
+        # save the target position for 25 actions to avoid agent lose the enemies position
         if self.count_actions == 25:
             self.target_position = None
             self.count_actions = 0
@@ -505,35 +506,36 @@ class AStarAgent(CaptureAgent):
 
         # if there is a path, return the first action to the next position in the path
         if path:
-            print(path)
             return path[0]
         else:
-            # if there is no path, return a random action
-            # si esta al centre del taulell, no pot anar cap a west
-            actions = game_state.get_legal_actions(self.index)
-            if current_position[0] == game_state.data.layout.width // 2:
-                actions = [action for action in actions if action != Directions.WEST]
-            return random.choice(actions)
+            # if there is no path, not move
+            return Directions.STOP
 
     def a_star_search(self, game_state, start, goal):
         """
         A* search
         """
+        # Initialize the frontier priority queue
         frontier_priority_queue = util.PriorityQueue()
         frontier_priority_queue.push((start, []), 0)
         expanded_nodes = set()
 
+        # A* search
         while not frontier_priority_queue.is_empty():
             current_pos, path = frontier_priority_queue.pop()
 
+            # Check if the current position has been expanded
             if current_pos in expanded_nodes:
                 continue
 
+            # Add the current position to the expanded nodes
             expanded_nodes.add(current_pos)
 
+            # check if the current position is the goal. If it is, return the path
             if current_pos == goal:
                 return path
 
+            # add the successors of the current position to the frontier priority queue
             for next_pos, direction, cost in self.get_successors(game_state, current_pos):
                 if next_pos not in expanded_nodes:
                     new_path = path + [direction]
@@ -542,6 +544,7 @@ class AStarAgent(CaptureAgent):
 
         return []
 
+    # function to get the successors given a game state and a position
     def get_successors(self, game_state, position):
         successors = []
         for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
@@ -550,6 +553,7 @@ class AStarAgent(CaptureAgent):
                 successors.append((next_position, direction, 1))
         return successors
 
+    # function to get the successor position given a position and a direction
     def get_successor_position(self, position, direction):
         x, y = position
         if direction == Directions.NORTH:
