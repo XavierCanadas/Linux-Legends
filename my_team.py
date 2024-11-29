@@ -438,6 +438,7 @@ class AStarAgent(CaptureAgent):
         self.target_position = None
         self.current_position = None
         self.count_actions = 0
+        self.count_parat = 0
 
     def register_initial_state(self, game_state):
         self.start = game_state.get_agent_position(self.index)
@@ -481,18 +482,25 @@ class AStarAgent(CaptureAgent):
                 try:
                     target = min(current_food, key=lambda x: self.get_maze_distance(center, x))
                 except:
-                    target = center
+                    if self.count_parat < 20:
+                        target = self.get_teammate_position(game_state)
+                        self.count_parat += 1
+                    else:
+                        target = center #donara error i a l'altre try catch es quedara parat
+
             else:
                 target = center
 
         # update the current position
         current_position = game_state.get_agent_position(self.index)
 
+        error = False
         # try-catch to avoid errors in two specific boards
         try:
             # call a_star_search to get the path to the target position
             path = self.a_star_search(game_state, current_position, target)
         except:
+            error = True
             path = []
 
         # reset the target position
@@ -509,6 +517,18 @@ class AStarAgent(CaptureAgent):
         else:
             # if there is no path, not move
             return Directions.STOP
+
+    def get_teammate_position(self, game_state):
+        # Obtén los índices de los agentes de tu equipo
+        team_indices = self.get_team(game_state)
+
+        # Filtra el índice de tu propio agente
+        teammate_index = [index for index in team_indices if index != self.index][0]
+
+        # Obtén la posición del compañero de equipo
+        teammate_position = game_state.get_agent_position(teammate_index)
+
+        return teammate_position
 
     def a_star_search(self, game_state, start, goal):
         """
