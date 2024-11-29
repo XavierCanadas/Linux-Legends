@@ -6,7 +6,7 @@
 
 **Instructor:** _[Sergio Calo]_
 
-**Team name:** _[Linux-Legends]_
+**Team name:** _[Linux_Legends]_
 
 **Team members:**
 
