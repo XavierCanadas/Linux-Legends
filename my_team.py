@@ -379,23 +379,26 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
         self.save_weights()
         return chosen_action
 
-    
-    
+
+
     def get_weights(self, game_state, action):
         return self.theta
-    
-    
+
+
     def load_weights(self, file_path='./agents/Linux-Legends/weights.json'):
         if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
-                weights_str = file.read()
-                weights_str = weights_str.replace('inf', 'float("inf")').replace('nan', 'float("nan")')
-                self.theta = util.Counter(eval(weights_str))
-        else:
-            #print("No weight file found. Initializing weights to default values.")
-            if not self.theta:
-                #print("a\n")
+            # He posat aquest per si decàs entra pq existeix el fitxer però no pot llegir-lo per permisos o lo q sigui
+            try:
+                with open(file_path, 'r') as file:
+                    weights_str = file.read()
+                    weights_str = weights_str.replace('inf', 'float("inf")').replace('nan', 'float("nan")')
+                    self.theta = util.Counter(eval(weights_str))
+            except:
                 self.theta = util.Counter(self.default_theta)
+        else:
+            # print("No weight file found. Initializing weights to default values.")
+            # sii feies if not setlf.theta mai entrava
+            self.theta = util.Counter(self.default_theta)
 
     def save_weights(self, file_path='./agents/Linux-Legends/weights.json'):
         try:
@@ -494,11 +497,19 @@ class AStarAgent(CaptureAgent):
                 try:
                     target = min(current_food, key=lambda x: self.get_maze_distance(center, x))
                 except:
-                    if self.count_parat < 20:
-                        target = self.get_teammate_position(game_state)
-                        self.count_parat += 1
-                    else:
-                        target = center #donara error i a l'altre try catch es quedara parat
+                    try:
+                        target = min(current_food, key=lambda x: self.get_horizontal_distance(center, x))
+                        # aquest try és lleig però bno
+                    except:
+                        if self.count_parat < 20:
+                            target = self.get_teammate_position(game_state)
+                            self.count_parat += 1
+                        else:
+                            target = center  # donara error i a l'altre try catch es quedara parat
+
+
+
+
 
             else:
                 target = center
@@ -541,6 +552,10 @@ class AStarAgent(CaptureAgent):
         teammate_position = game_state.get_agent_position(teammate_index)
 
         return teammate_position
+
+        # function to get the horizontal distance between two points
+    def get_horizontal_distance(self, point, point_2):
+        return abs(point[0] - point_2[0])
 
     def a_star_search(self, game_state, start, goal):
         """
