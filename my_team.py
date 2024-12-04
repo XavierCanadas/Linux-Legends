@@ -151,6 +151,13 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
         self.gamma = gamma  # Discount factor
         self.epsilon = epsilon  # Exploration rate
         self.theta = util.Counter()  # Weights
+        self.default_theta = {
+            'successor_score': 0.597768029257424,
+            'distance_to_boundary': 0.29987240616421795,
+            'distance_to_food': 0.10814150954240499,
+            'num_carrying_food': 0.03325015260041081,
+            'distance_to_rival': 0.3025258665831148
+        }
 
     def register_initial_state(self, game_state):
         super().register_initial_state(game_state)
@@ -336,10 +343,8 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
 
     
     def choose_action(self, game_state):
-        
         actions = game_state.get_legal_actions(self.index)
         my_pos = game_state.get_agent_state(self.index).get_position()
-
 
         # Epsilon-greedy policy
         if random.random() < self.epsilon:
@@ -350,9 +355,9 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
             best_actions = [a for a, q in zip(actions, q_values) if q == max_q_value]
             chosen_action = random.choice(best_actions)  # choose one of the best actions randomly
 
-        # Obtain the sucesor state
+        # Obtain the successor state
         successor = self.get_successor(game_state, chosen_action)
-        # Calculte the current features
+        # Calculate the current features
         current_features = self.get_features(game_state, chosen_action)
         # Calculate the reward
         reward = self.reward_function(game_state, chosen_action)
@@ -373,6 +378,7 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
 
         self.save_weights()
         return chosen_action
+
     
     
     def get_weights(self, game_state, action):
@@ -386,12 +392,18 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
                 weights_str = weights_str.replace('inf', 'float("inf")').replace('nan', 'float("nan")')
                 self.theta = util.Counter(eval(weights_str))
         else:
-            print("No weight file found. Initializing weights to zeros.")
-            self.theta = util.Counter()
-    
+            #print("No weight file found. Initializing weights to default values.")
+            if not self.theta:
+                #print("a\n")
+                self.theta = util.Counter(self.default_theta)
+
     def save_weights(self, file_path='./agents/Linux-Legends/weights.json'):
-        with open(file_path, 'w') as f:
-            f.write(str(dict(self.theta)))
+        try:
+            with open(file_path, 'w') as f:
+                f.write(str(dict(self.theta)))
+        except Exception:
+            #print("Error saving weights")
+            pass
 
 
 class DefensiveReflexAgent(ReflexCaptureAgent):
